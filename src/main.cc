@@ -55,19 +55,6 @@ float vertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
-glm::vec3 cubePositions[] = {
-    glm::vec3( 0.0f,  0.0f,  0.0f), 
-    glm::vec3( 2.0f,  5.0f, -15.0f), 
-    glm::vec3(-1.5f, -2.2f, -2.5f),  
-    glm::vec3(-3.8f, -2.0f, -12.3f),  
-    glm::vec3( 2.4f, -0.4f, -3.5f),  
-    glm::vec3(-1.7f,  3.0f, -7.5f),  
-    glm::vec3( 1.3f, -2.0f, -2.5f),  
-    glm::vec3( 1.5f,  2.0f, -2.5f), 
-    glm::vec3( 1.5f,  0.2f, -1.5f), 
-    glm::vec3(-1.3f,  1.0f, -1.5f)  
-};
-
 glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  3.0f),
           cameraFront = glm::vec3(0.0f, 0.0f, -1.0f),
           cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
@@ -85,26 +72,16 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-  float xOffset = xpos - lastX,
-        yOffset = ypos - lastY;
+  float xOffset = xpos - lastX;
   lastX = xpos;
-  lastY = ypos;
   const float sensitivity = 0.1f;
   xOffset *= sensitivity;
-  yOffset *= sensitivity;
   yaw += xOffset;
-  pitch -= yOffset;
   pitch = std::clamp(pitch, -89.0f, 89.0f);
   glm::vec3 front = glm::vec3(cos(glm::radians(yaw)) * cos(glm::radians(pitch)),
                               sin(glm::radians(pitch)),
                               sin(glm::radians(yaw)) * cos(glm::radians(pitch)));
   cameraFront = glm::normalize(front);
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-  fov -= (float)yoffset;
-  if (fov < 1.0f) fov = 1.0f;
-  if (fov > 45.0f) fov = 45.0f;
 }
 
 void processInput(GLFWwindow* window) {
@@ -125,6 +102,14 @@ void processInput(GLFWwindow* window) {
     cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+  if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS)
+    glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
+  else
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+  if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS)
+    fov = 20.0f;
+  else
+    fov = 45.0f;
 }
 
 int main(int argc, char** argv) {
@@ -143,7 +128,6 @@ int main(int argc, char** argv) {
     return -1;
   }
   glfwSetCursorPosCallback(window, mouse_callback);
-  glfwSetScrollCallback(window, scroll_callback);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -208,7 +192,6 @@ int main(int argc, char** argv) {
   while (!glfwWindowShouldClose(window)) {
     processInput(window);
 
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glActiveTexture(GL_TEXTURE0);
@@ -221,9 +204,9 @@ int main(int argc, char** argv) {
     glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     shader.SetMat4("view", view);
     glBindVertexArray(VAO);
-    for(unsigned int i = 0; i < 10; i++) {
+    for(unsigned int i = 0; i < 90; i++) {
       glm::mat4 model = glm::mat4(1.0f);
-      model = glm::translate(model, cubePositions[i]);
+      model = glm::translate(model, glm::vec3(i, 0.0f, 1.0f));
       float angle = 20.0f * i; 
       model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
       shader.SetMat4("model", model);
@@ -235,6 +218,7 @@ int main(int argc, char** argv) {
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
+    glfwSetWindowTitle(window, ("FPS: " + std::to_string(1.0f/deltaTime)).c_str());
   }
   
   glDeleteVertexArrays(1, &VAO);
